@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PhinFinder - Tìm quán cà phê</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#FBF8F3] text-gray-800 font-sans p-6">
+  <div class="max-w-6xl mx-auto">
+    <!-- Header & Ô Tìm kiếm -->
+    <header class="text-center my-8">
+      <h1 class="text-3xl font-bold mb-2">PhinFinder</h1>
+      <p class="text-gray-500 mb-6">Khám phá không gian cà phê phù hợp với bạn</p>
+      
+      <input type="text" id="search-input" placeholder="Tìm theo tên quán, địa chỉ..." 
+        class="w-full max-w-lg px-4 py-3 rounded-full border border-gray-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-amber-500 mb-5">
+
+      <!-- Bộ lọc tiện ích (Filter) -->
+      <div class="flex flex-wrap justify-center gap-2 max-w-2xl mx-auto mb-6" id="filter-buttons">
+        <!-- Nút lọc sẽ tự động tạo từ JavaScript -->
+      </div>
+    </header>
+
+    <!-- Grid danh sách quán -->
+    <div id="cafe-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
+
+  <script src="data.js"></script>
+  <script>
+    const grid = document.getElementById('cafe-grid');
+    const searchInput = document.getElementById('search-input');
+    const filterContainer = document.getElementById('filter-buttons');
+
+    // Danh sách tiện ích cần lọc
+    const ALL_AMENITIES = ["Máy lạnh", "Chỗ để xe", "Ngoài trời", "Wifi", "Ổ cắm điện"];
+    let selectedAmenities = [];
+
+    // 1. Tạo các nút lọc tiêu chí
+    function renderFilterButtons() {
+      filterContainer.innerHTML = '';
+      ALL_AMENITIES.forEach(amenity => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.innerText = amenity;
+        btn.className = `px-3.5 py-1.5 rounded-full text-xs font-medium border transition cursor-pointer ${
+          selectedAmenities.includes(amenity)
+            ? 'bg-amber-600 text-white border-amber-600'
+            : 'bg-white text-gray-600 border-gray-200 hover:border-amber-400'
+        }`;
+        
+        btn.addEventListener('click', () => {
+          if (selectedAmenities.includes(amenity)) {
+            selectedAmenities = selectedAmenities.filter(a => a !== amenity);
+          } else {
+            selectedAmenities.push(amenity);
+          }
+          renderFilterButtons();
+          applyFilter();
+        });
+
+        filterContainer.appendChild(btn);
+      });
+    }
+
+    // 2. Hàm hiển thị danh sách quán
+    function renderCafes(cafeList) {
+      grid.innerHTML = '';
+      if (cafeList.length === 0) {
+        grid.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10">Không tìm thấy quán nào phù hợp với tiêu chí của bạn.</p>`;
+        return;
+      }
+
+      cafeList.forEach(cafe => {
+        const card = document.createElement('a');
+        card.href = `detail.html?id=${cafe.id}`;
+        card.className = "bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition border border-amber-100 block";
+        
+        card.innerHTML = `
+          <div class="relative h-48">
+            <img src="${cafe.image}" class="w-full h-full object-cover" alt="${cafe.name}">
+            <span class="absolute top-3 left-3 bg-black/60 text-white text-xs px-2.5 py-1 rounded-md">${cafe.price}</span>
+          </div>
+          <div class="p-4">
+            <div class="flex justify-between items-start">
+              <h3 class="font-bold text-lg">${cafe.name}</h3>
+              <span class="text-amber-500 font-bold text-sm">★ ${cafe.rating}</span>
+            </div>
+            <p class="text-emerald-600 text-xs font-semibold mt-1">● ${cafe.status}</p>
+            
+            <!-- Tags phong cách -->
+            <div class="flex flex-wrap gap-1.5 mt-3">
+              ${cafe.tags.map(tag => `<span class="bg-amber-50 text-amber-800 text-xs px-2 py-0.5 rounded-md">${tag}</span>`).join('')}
+            </div>
+
+            <!-- Tiện ích (Amenities) -->
+            <div class="flex flex-wrap gap-1 mt-2 border-t pt-2 border-gray-100 text-[11px] text-gray-500">
+              ${(cafe.amenities || []).map(item => `<span>✓ ${item}</span>`).join(' • ')}
+            </div>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // 3. Hàm xử lý kết hợp Ô tìm kiếm & Bộ lọc tiện ích
+    function applyFilter() {
+      const keyword = searchInput.value.toLowerCase().trim();
+
+      const filteredCafes = CAFE_DATA.filter(cafe => {
+        // Kiểm tra từ khóa tìm kiếm
+        const matchesKeyword = cafe.name.toLowerCase().includes(keyword) || 
+                               cafe.address.toLowerCase().includes(keyword) ||
+                               cafe.tags.some(tag => tag.toLowerCase().includes(keyword));
+
+        // Kiểm tra tiện ích đã chọn (Quán phải có ĐỦ tất cả tiện ích đang chọn)
+        const matchesAmenities = selectedAmenities.every(selected => 
+          cafe.amenities && cafe.amenities.includes(selected)
+        );
+
+        return matchesKeyword && matchesAmenities;
+      });
+
+      renderCafes(filteredCafes);
+    }
+
+    // Lắng nghe sự kiện gõ từ khóa
+    searchInput.addEventListener('input', applyFilter);
+
+    // Khởi tạo ban đầu
+    renderFilterButtons();
+    renderCafes(CAFE_DATA);
+  </script>
+</body>
+</html>
